@@ -3,7 +3,7 @@ body,
 html {
   height: 100%;
   margin: 0;
-  padding: 0;
+  padding-top: 40px;
   font-family: "Lato", sans-serif;
   background-color: #121212;
   color: white;
@@ -59,8 +59,8 @@ html {
   font-weight: bold;
 }
 
-input,
-button {
+.main-app-content input,
+.main-app-content button {
   font-size: 20px;
   padding: 10px;
   margin: 5px;
@@ -70,31 +70,80 @@ button {
   border-radius: 5px;
 }
 
-button {
+.main-app-content button {
   cursor: pointer;
   transition: background-color 0.3s;
 }
 
-input {
-  text-transform: uppercase; /* Makes the input text uppercase */
+.main-app-content input {
+  text-transform: uppercase;
 }
 
-button:hover {
+.main-app-content button:hover {
   background-color: #555;
+}
+
+@keyframes messageFadeInOut {
+  0% { opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.message-container {
+  position: relative;
+  width: 100%;
+  height: 40px; 
+  margin-top: 10px;
+}
+
+.message-success,
+.message-error {
+  animation: messageFadeInOut 4s ease-in-out;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
 }
 
 .message-success {
   color: green;
-  font-size: 20px;
-  height: 30px;
 }
 
 .message-error {
   color: red;
-  font-size: 20px;
-  height: 30px;
 }
 
+.form-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  width: 100%;
+}
+
+.form-container form {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-animation-container {
+  position: absolute;
+  top: -30px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.score-animation {
+  color: green;
+  animation: floatUp 1s ease-out forwards;
+}
+
+/* Point floating animation */
 @keyframes floatUp {
   from {
     opacity: 1;
@@ -106,17 +155,6 @@ button:hover {
   }
 }
 
-.form-container {
-  display: flex;
-  align-items: center; /* Aligns items vertically center */
-  position: relative;
-}
-
-.score-animation {
-  color: green;
-  animation: floatUp 2s ease-out forwards;
-  margin-left: 10px; /* Space between the input and the score animation */
-}
 
 /* Fade in animation */
 @keyframes fadeIn {
@@ -173,6 +211,23 @@ button:hover {
   margin: 20px;
   opacity: 1;
   animation: fadeIn 0.5s ease forwards;
+}
+
+/* This is for the restart game button */
+.game-button {
+  font-size: 20px;
+  padding: 10px;
+  margin: 5px;
+  background-color: #333;
+  border: none;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.game-button:hover {
+  background-color: #555;
 }
 
 .fade-in {

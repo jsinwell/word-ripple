@@ -1,18 +1,30 @@
-import { auth, googleProvider } from "./firebase-config";
-import { signInWithRedirect, getRedirectResult } from "firebase/auth";
+import { auth, provider } from "./firebase-config";
+import { signInWithPopup, signOut } from "firebase/auth";
 
 export const loginWithGoogle = () => {
-  signInWithRedirect(auth, googleProvider);
-};
-
-export const fetchRedirectResult = () =>
-  getRedirectResult(auth)
+  return signInWithPopup(auth, provider)
     .then((result) => {
-      if (result) {
-        const user = result.user;
-        return user;
-      }
+      return result.user;
     })
     .catch((error) => {
       throw error;
     });
+};
+
+export const logoutUser = () => {
+  return signOut(auth)
+  .then(() => {
+    console.log("User signed out successfully");
+  })
+  .catch((error) => {
+    throw error;
+  });
+};
+
+// Listen to authentication changes (not needed rn)
+export const onAuthStateChange = (callback) => {
+  return auth.onAuthStateChanged((user) => {
+    console.log("Auth state changed:", user);
+    callback(user);
+  });
+};

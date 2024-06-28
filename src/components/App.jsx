@@ -1,25 +1,46 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Modal } from "react-responsive-modal";
 import { isValidWord, getRandomWord } from "../services/dictionary";
 import { checkSemanticRelation } from "../services/semantics";
+import { loginWithGoogle, logoutUser } from '../firebase/authService';
 import WordChain from "../components/WordChain";
+import Header from "../components/Header";
+import LoginModal from "./LoginModal";
+import SignUpModal from "./SignupModal";
+import { auth } from "../firebase/firebase-config";
+import { onAuthStateChanged } from "firebase/auth";
 import "react-responsive-modal/styles.css";
 import "../styles/App.css";
 import "../styles/Modal.css";
 
 function App() {
-  const [modalOpen, setModalOpen] = useState(true);
+  const [user, setUser] = useState(null);
+
+  // Instructions modal
+  const [modalOpen, setModalOpen] = useState(() => {
+    const hasVisitedBefore = localStorage.getItem('hasVisitedWordRipple');
+    return !hasVisitedBefore;
+  });
+
+  const [loginModalOpen, setLoginModalOpen] = useState(false); // Login modal
+  const [signUpModalOpen, setSignUpModalOpen] = useState(false); // Signup modal
 
   const [currentWord, setCurrentWord] = useState("");
   const [inputWord, setInputWord] = useState("");
+
   const [message, setMessage] = useState(""); // Success & failure messages
   const [messageType, setMessageType] = useState("");
+  const [messageKey, setMessageKey] = useState(0);
+  const messageTimeoutRef = useRef(null); // Ref for message timeout
+
   const [showScore, setShowScore] = useState(false);
 
   const [wordSet, setWordSet] = useState(new Set()); // Look up previously used words
   const [usedWords, setUsedWords] = useState([]); // Track order of user's words
 
   const [timeLeft, setTimeLeft] = useState(60); // 5 minute timer
+  const [isTimerRunning, setIsTimerRunning] = useState(false); // Is the timer running?
+
   const [points, setPoints] = useState(0); // Count how many points user has
   const [gameOver, setGameOver] = useState(false);
   const [fade, setFade] = useState(false); // Controls fading out the main screen
@@ -28,38 +49,116 @@ function App() {
     resetGame();
   }, []);
 
+  // Only show the instruction modal if the user has visited the page for the first time
+  useEffect(() => {
+    const hasVisitedBefore = localStorage.getItem('hasVisitedWordRipple');
+    if (!hasVisitedBefore) {
+      localStorage.setItem('hasVisitedWordRipple', 'true');
+    }
+  }, []);
+
   const handleCloseModal = () => {
     setModalOpen(false);
+    localStorage.setItem('hasVisitedWordRipple', 'true');
     resetGame();
   };
 
-  // Reset the game to a clean state (fresh timer, new word, 0 points)
+  // Google sign in authentication
+  const handleLogin = () => {
+    loginWithGoogle()
+      .then((user) => {
+        setUser(user);
+      })
+      .catch((error) => console.error("Login error:", error));
+  };
+
+  // Handle logging out
+  const handleLogout = () => {
+    logoutUser()
+      .then(() => {
+        setUser(null);
+      })
+      .catch((error) => console.error("Logout error:", error));
+  };
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      console.log("Auth state changed:", currentUser); // Add this line for debugging
+      setUser(currentUser);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+
+  // Reset the game to a clean state
   const resetGame = () => {
     const newWord = getRandomWord();
     setCurrentWord(newWord.toUpperCase());
-    setMessage("");
     setWordSet(new Set());
     setUsedWords([newWord.toUpperCase()]); // Include starting word in final chain
+
     setTimeLeft(60);
+    setIsTimerRunning(false);
+
     setGameOver(false);
     setPoints(0);
     setFade(false);
+
+    // Clear any existing message and its timeout
+    if (messageTimeoutRef.current) { clearTimeout(messageTimeoutRef.current) };
+    setMessage("");
+    setMessageType("");
+    setMessageKey(0);
   };
 
-  // Timer countdown; when we reach 0, we fadeout to the game over screen
+  // Timer countdown
   useEffect(() => {
-    if (timeLeft > 0 && !gameOver) {
-      const timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearTimeout(timerId);
-    } else if (timeLeft === 0 && !fade) {
+    let timerId;
+    // Only decrement timer under these conditions
+    if (isTimerRunning && timeLeft > 0 && !gameOver && !modalOpen) {
+      timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+    } else if (timeLeft === 0 && !fade) { // Fade to game over screen
       setFade(true);
-      setTimeout(() => setGameOver(true), 3000); // 2s pause + 1s fade out
+      setTimeout(() => setGameOver(true), 3000);
     }
-  }, [timeLeft, gameOver, fade]);
+    return () => clearTimeout(timerId);
+  }, [timeLeft, gameOver, fade, isTimerRunning, modalOpen]);
 
   const handleChange = (event) => {
-    setInputWord(event.target.value.toUpperCase()); // Handle input in uppercase
+    setInputWord(event.target.value.toUpperCase());
+    if (!isTimerRunning) {
+      setIsTimerRunning(true); // Begin timer once user has typed something
+    }
+  }
+
+  const showMessage = (text, type) => {
+    // Clear any existing timeout
+    if (messageTimeoutRef.current) {
+      clearTimeout(messageTimeoutRef.current);
+    }
+
+    setMessage(text);
+    setMessageType(type);
+    setMessageKey(prev => prev + 1);  // Force rerender of message
+
+    // Set new timeout and save the ID; prevents previous message from
+    // being cleared too soon if a new one comes in
+    messageTimeoutRef.current = setTimeout(() => {
+      setMessage("");
+      setMessageType("");
+      messageTimeoutRef.current = null;
+    }, 4000);
   };
+
+  useEffect(() => {
+    // Cleanup function of message timeout
+    return () => {
+      if (messageTimeoutRef.current) {
+        clearTimeout(messageTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -67,16 +166,14 @@ function App() {
 
     // Check if the word has already been used
     if (wordSet.has(wordToCheck)) {
-      setMessage("You have already used this word.");
-      setMessageType("error");
+      showMessage("You have already used this word.", "error");
       setInputWord("");
       return;
     }
 
     // Check if the word is in our dictionary
     if (!isValidWord(wordToCheck)) {
-      setMessage("Invalid word.");
-      setMessageType("error");
+      showMessage("Invalid word.", "error");
       setInputWord("");
       return;
     }
@@ -91,13 +188,11 @@ function App() {
       setUsedWords((prevWords) => [...prevWords, wordToCheck.toUpperCase()]); // Add new word for in order display at the end
       setPoints(points + 10); // Each valid word is +10 pts
       setCurrentWord(inputWord);
-      setMessage("Good job! The words are semantically related.");
-      setMessageType("success");
+      showMessage("Good job! The words are semantically related.", "success");
       setShowScore(true); // Show the score animation
       setTimeout(() => setShowScore(false), 1000); // Hide the score after 1 seconds
     } else {
-      setMessage("The words are not semantically related.");
-      setMessageType("error");
+      showMessage("The words are not semantically related.", "error");
     }
     setInputWord("");
   };
@@ -185,15 +280,38 @@ function App() {
         </div>
       </Modal>
 
-      <div className="header">
-        <h1 className="title">Word Ripple</h1>
-        <div className={`game-info ${fade ? "fade-out" : ""}`}>
-          <div>
-            Time left: {Math.floor(timeLeft / 60)}:
-            {(timeLeft % 60).toString().padStart(2, "0")}
-          </div>
-          <div>Points: {points}</div>
+      <Header
+        user={user}
+        handleLogout={handleLogout}
+        openLoginModal={() => setLoginModalOpen(true)}
+        openSignUpModal={() => setSignUpModalOpen(true)}
+      />
+
+      <LoginModal
+        open={loginModalOpen}
+        onClose={() => setLoginModalOpen(false)}
+        onSignUpClick={() => {
+          setLoginModalOpen(false);
+          setSignUpModalOpen(true);
+        }}
+      />
+
+      <SignUpModal
+        open={signUpModalOpen}
+        onClose={() => setSignUpModalOpen(false)}
+        onLoginClick={() => {
+          setSignUpModalOpen(false);
+          setLoginModalOpen(true);
+        }}
+      />
+
+
+      <div className={`game-info ${fade ? "fade-out" : ""}`}>
+        <div>
+          Time left: {Math.floor(timeLeft / 60)}:
+          {(timeLeft % 60).toString().padStart(2, "0")}
         </div>
+        <div>Points: {points}</div>
       </div>
       {gameOver ? (
         <div
@@ -201,14 +319,17 @@ function App() {
         >
           <h1 className="game-over-message fade-in">Game Over!</h1>
           <p className="total-points fade-in">Total points: {points}</p>
-          <button className="restart-button fade-in" onClick={resetGame}>
+          <button className="restart-button game-button fade-in" onClick={resetGame}>
             Restart Game
           </button>
         </div>
       ) : (
-        <div className={`game-container ${fade ? "fade-out" : ""}`}>
+        <div className={`game-container main-app-content ${fade ? "fade-out" : ""}`}>
           <p className="word-display">{renderWord(currentWord)}</p>
           <div className="form-container">
+            <div className="score-animation-container">
+              {showScore && <span className="score-animation">+10</span>}
+            </div>
             <form onSubmit={handleSubmit}>
               <input
                 type="text"
@@ -221,15 +342,17 @@ function App() {
                 Reset
               </button>
             </form>
-            {showScore && <span className="score-animation">+10</span>}
+            <div className="message-container">
+              {message && (
+                <p
+                  key={messageKey}
+                  className={messageType === "success" ? "message-success" : "message-error"}
+                >
+                  {message}
+                </p>
+              )}
+            </div>
           </div>
-          <p
-            className={
-              messageType === "success" ? "message-success" : "message-error"
-            }
-          >
-            {message}
-          </p>
         </div>
       )}
     </div>

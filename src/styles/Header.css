@@ -1,0 +1,68 @@
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Lato', sans-serif;
+    padding: 10px 3%;
+    background-color: #1a1a2e;
+    color: white;
+    width: 100vw; 
+    box-sizing: border-box;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    height: 50px;
+}
+
+.title {
+    font-size: 1.5em;
+    font-weight: 700;
+    margin: 0;
+}
+
+.auth-container {
+    display: flex;
+    align-items: center;
+}
+
+.user-greeting {
+    margin-right: 15px;
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.header-auth-button {
+    padding: 6px 12px;
+    margin: 0 5px;
+    font-size: 0.8em;
+    background-color: #16d9e3;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    color: #1a1a2e;
+    transition: all 0.3s ease;
+    letter-spacing: 0.5px;
+}
+
+.header-auth-button:hover {
+    background-color: #46aef7;
+}
+
+@media (max-width: 600px) {
+.app-header {
+    padding: 10px 3%;
+}
+.title {
+    font-size: 1.2em;
+}
+
+.header-auth-button {
+    padding: 5px 10px;
+    font-size: 0.7em;
+}
+
+.user-greeting {
+    font-size: 0.8em;
+}
+}

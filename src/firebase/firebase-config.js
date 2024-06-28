@@ -8,11 +8,12 @@ const firebaseConfig = {
   storageBucket: "word-ripple.appspot.com",
   messagingSenderId: "607695525961",
   appId: "1:607695525961:web:0a0268ff25b14a79d0c798",
-  measurementId: "G-Z3CSKW36EG",
+  measurementId: "G-Z3CSKW36EG"
 };
 
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
 
+export { auth, provider };
 export default app;
