@@ -1,0 +1,189 @@
+/* src/App.css */
+body,
+html {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: "Lato", sans-serif;
+  background-color: #121212;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  height: 100vh;
+}
+
+.header {
+  text-align: center;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.title {
+  margin: 20px 0;
+}
+
+.game-info {
+  display: flex;
+  justify-content: center;
+  margin-top: 5px;
+}
+
+.game-info > div {
+  margin: 0 10px;
+}
+
+.game-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 100px;
+  z-index: 1;
+}
+
+.word-display {
+  letter-spacing: 1px;
+  font-size: 32px;
+  font-weight: bold;
+}
+
+input,
+button {
+  font-size: 20px;
+  padding: 10px;
+  margin: 5px;
+  background-color: #333;
+  border: none;
+  color: white;
+  border-radius: 5px;
+}
+
+button {
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+input {
+  text-transform: uppercase; /* Makes the input text uppercase */
+}
+
+button:hover {
+  background-color: #555;
+}
+
+.message-success {
+  color: green;
+  font-size: 20px;
+  height: 30px;
+}
+
+.message-error {
+  color: red;
+  font-size: 20px;
+  height: 30px;
+}
+
+@keyframes floatUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+.form-container {
+  display: flex;
+  align-items: center; /* Aligns items vertically center */
+  position: relative;
+}
+
+.score-animation {
+  color: green;
+  animation: floatUp 2s ease-out forwards;
+  margin-left: 10px; /* Space between the input and the score animation */
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Fade out animation */
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 1s ease forwards;
+}
+
+.fade-out {
+  animation: fadeOut 1s ease forwards;
+}
+
+.game-over-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.85);
+  transition: background-color 0.5s ease;
+  z-index: 10;
+}
+
+.game-over-active {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+.game-over-message,
+.total-points,
+.restart-button {
+  color: #fff;
+  font-size: 24px;
+  margin: 20px;
+  opacity: 1;
+  animation: fadeIn 0.5s ease forwards;
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
