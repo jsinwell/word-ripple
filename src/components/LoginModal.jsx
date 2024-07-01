@@ -46,6 +46,7 @@ const LoginModal = ({ open, onClose, onSignUpClick }) => {
             })
             .then(() => {
                 onClose();
+                window.location.reload();
             })
             .catch((error) => {
                 if (error.code === 'auth/invalid-credential') {
@@ -65,6 +66,7 @@ const LoginModal = ({ open, onClose, onSignUpClick }) => {
             })
             .then(() => {
                 onClose();
+                window.location.reload();
             })
             .catch((error) => {
                 console.error("Error signing in with Google", error);

@@ -6,7 +6,7 @@
     padding: 10px 3%;
     background-color: #1a1a2e;
     color: white;
-    width: 100vw; 
+    width: 100vw;
     box-sizing: border-box;
     position: fixed;
     top: 0;
@@ -49,20 +49,38 @@
     background-color: #46aef7;
 }
 
+.help-button {
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 1.5em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.help-button:hover {
+    color: #4a90e2;
+}
+
 @media (max-width: 600px) {
-.app-header {
-    padding: 10px 3%;
-}
-.title {
-    font-size: 1.2em;
-}
+    .app-header {
+        padding: 10px 3%;
+    }
 
-.header-auth-button {
-    padding: 5px 10px;
-    font-size: 0.7em;
-}
+    .title {
+        font-size: 1.2em;
+    }
 
-.user-greeting {
-    font-size: 0.8em;
-}
+    .header-auth-button {
+        padding: 5px 10px;
+        font-size: 0.7em;
+    }
+
+    .user-greeting {
+        font-size: 0.8em;
+    }
+
+    .help-button {
+        font-size: 1.2em;
+    }
 }

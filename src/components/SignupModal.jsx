@@ -61,6 +61,7 @@ const SignUpModal = ({ open, onClose, onLoginClick }) => {
             })
             .then(() => {
                 onClose();
+                window.location.reload(); // Refresh the page
             })
             // Displaying error messages (email in use, weak password, generic)
             .catch((error) => {

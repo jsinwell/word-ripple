@@ -177,11 +177,12 @@ html {
 }
 
 .fade-in {
-  animation: fadeIn 1s ease forwards;
+  opacity: 0;
+  animation: fadeIn 2s ease forwards;
 }
 
 .fade-out {
-  animation: fadeOut 1s ease forwards;
+  animation: fadeOut 2s ease forwards;
 }
 
 .game-over-screen {
@@ -189,56 +190,126 @@ html {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.85);
-  transition: background-color 0.5s ease;
+  background: rgba(0, 0, 0, 0.9);
   z-index: 10;
+  opacity: 0;
+  animation: fadeIn 1s ease forwards 0.5s;
 }
 
-.game-over-active {
-  animation: fadeIn 0.5s ease forwards;
+.game-over-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 90%;
+  max-width: 600px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.game-over-message,
-.total-points,
-.restart-button {
+.game-over-message {
+  color: #fff;
+  font-size: 40px;
+  margin: 20px 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.leaderboard-container {
+  width: 100%;
+  margin: 20px 0;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #fff;
+  font-size: 16px;
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.leaderboard-table th {
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #4CAF50;
+}
+
+.total-points {
   color: #fff;
   font-size: 24px;
-  margin: 20px;
-  opacity: 1;
-  animation: fadeIn 0.5s ease forwards;
+  margin: 20px 0;
 }
 
-/* This is for the restart game button */
-.game-button {
+.restart-button {
   font-size: 20px;
-  padding: 10px;
-  margin: 5px;
-  background-color: #333;
+  padding: 12px 24px;
+  margin: 20px 0;
+  background-color: #4CAF50;
   border: none;
   color: white;
-  border-radius: 5px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
-.game-button:hover {
-  background-color: #555;
+.restart-button:hover {
+  background-color: #45a049;
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.fade-in {
-  animation: fadeIn 0.5s ease forwards;
-}
+.delay-1 { animation-delay: 1s; }
+.delay-2 { animation-delay: 1.5s; }
+.delay-3 { animation-delay: 2s; }
+.delay-4 { animation-delay: 2.5s; }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
+/* Game over screen reponsive design */
+@media (max-width: 600px) {
+  .game-over-message {
+    font-size: 36px;
   }
-  to {
-    opacity: 1;
+
+  .leaderboard-table {
+    font-size: 14px;
+  }
+
+  .total-points {
+    font-size: 20px;
+  }
+
+  .restart-button {
+    font-size: 16px;
+    padding: 10px 20px;
+  }
+}
+
+@media (min-width: 601px) and (max-width: 1024px) {
+  .game-over-message {
+    font-size: 40px;
+  }
+
+  .leaderboard-table {
+    font-size: 15px;
+  }
+
+  .total-points {
+    font-size: 22px;
+  }
+
+  .restart-button {
+    font-size: 18px;
+    padding: 11px 22px;
   }
 }

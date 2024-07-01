@@ -1,26 +1,48 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Modal } from "react-responsive-modal";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useMediaQuery } from "react-responsive";
 import { isValidWord, getRandomWord } from "../services/dictionary";
 import { checkSemanticRelation } from "../services/semantics";
-import { loginWithGoogle, logoutUser } from '../firebase/authService';
-import WordChain from "../components/WordChain";
-import Header from "../components/Header";
-import LoginModal from "./LoginModal";
-import SignUpModal from "./SignupModal";
+import { logoutUser } from '../firebase/authService';
 import { auth } from "../firebase/firebase-config";
 import { onAuthStateChanged } from "firebase/auth";
-import "react-responsive-modal/styles.css";
+import InstructionsModal from "../components/InstructionsModal";
+import Header from "../components/Header";
+import Leaderboard from "./Leaderboard";
+import LoginModal from "./LoginModal";
+import SignUpModal from "./SignupModal";
 import "../styles/App.css";
-import "../styles/Modal.css";
+
+// Function to get a single daily word pair in journey mode for all users
+const getDailyWords = () => {
+  const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+  let seed = parseInt(today.replace(/-/g, ''), 10); // Convert date to number for seeding
+
+  // Use the seed to generate consistent random words for the day
+  const getSeededRandomWord = () => {
+    seed = (seed * 9301 + 49297) % 233280;
+    return getRandomWord(seed / 233280);
+  };
+
+  const startWord = getSeededRandomWord();
+  let endWord;
+  do {
+    endWord = getSeededRandomWord();
+  } while (startWord === endWord);
+
+  return { startWord, endWord };
+};
+
 
 function App() {
   const [user, setUser] = useState(null);
 
   // Instructions modal
-  const [modalOpen, setModalOpen] = useState(() => {
+  const [firstTimeModalOpen, setFirstTimeModalOpen] = useState(() => {
     const hasVisitedBefore = localStorage.getItem('hasVisitedWordRipple');
     return !hasVisitedBefore;
   });
+
+  const [helpModalOpen, setHelpModalOpen] = useState(false); // Help button state
 
   const [loginModalOpen, setLoginModalOpen] = useState(false); // Login modal
   const [signUpModalOpen, setSignUpModalOpen] = useState(false); // Signup modal
@@ -45,9 +67,17 @@ function App() {
   const [gameOver, setGameOver] = useState(false);
   const [fade, setFade] = useState(false); // Controls fading out the main screen
 
+  const [gameMode, setGameMode] = useState('classic'); // 'classic' or 'journey' gamemode
+  const [targetWord, setTargetWord] = useState(""); // Journey mode ending word
+  const dailyWordsRef = useRef(null);
+
+  // React responsive media queries
+  const isSmallScreen = useMediaQuery({ maxWidth: 600 });
+  const isMediumScreen = useMediaQuery({ minWidth: 601, maxWidth: 1024 });
+
   useEffect(() => {
     resetGame();
-  }, []);
+  }, [gameMode]);
 
   // Only show the instruction modal if the user has visited the page for the first time
   useEffect(() => {
@@ -57,19 +87,19 @@ function App() {
     }
   }, []);
 
-  const handleCloseModal = () => {
-    setModalOpen(false);
+  const handleCloseFirstTimeModal = () => {
+    setFirstTimeModalOpen(false);
     localStorage.setItem('hasVisitedWordRipple', 'true');
     resetGame();
   };
 
-  // Google sign in authentication
-  const handleLogin = () => {
-    loginWithGoogle()
-      .then((user) => {
-        setUser(user);
-      })
-      .catch((error) => console.error("Login error:", error));
+  // Clicking on help button will re-open instructions modal
+  const openHelpModal = () => {
+    setHelpModalOpen(true);
+  };
+
+  const handleCloseHelpModal = () => {
+    setHelpModalOpen(false);
   };
 
   // Handle logging out
@@ -77,54 +107,81 @@ function App() {
     logoutUser()
       .then(() => {
         setUser(null);
+        window.location.reload(); // Refresh the page
       })
       .catch((error) => console.error("Logout error:", error));
   };
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      console.log("Auth state changed:", currentUser); // Add this line for debugging
-      setUser(currentUser);
-    });
 
-    return () => unsubscribe();
-  }, []);
-
-
-  // Reset the game to a clean state
-  const resetGame = () => {
-    const newWord = getRandomWord();
-    setCurrentWord(newWord.toUpperCase());
+  // Reset the game to a clean state. Depends on which game mode is selected
+  // Seriously what the fuck is this
+  const resetGame = useCallback(async () => {
+    if (gameMode === 'classic') {
+      const newWord = getRandomWord();
+      setCurrentWord(newWord.toUpperCase());
+      setTargetWord("");
+      setTimeLeft(60);
+      setIsTimerRunning(false);
+      setGameOver(false);
+      setPoints(0);
+      setFade(false);
+    } 
+    
+    else if (gameMode === 'journey') {
+        if (!dailyWordsRef.current) {
+          dailyWordsRef.current = getDailyWords();
+        }
+        const { startWord, endWord } = dailyWordsRef.current;
+        setCurrentWord(startWord.toUpperCase());
+        setTargetWord(endWord.toUpperCase());
+        setTimeLeft(60);
+        setIsTimerRunning(false);
+        setGameOver(false);
+        setPoints(0);
+        setFade(false);
+      } 
+      
+      else {
+        setDailyGamePlayed(true);
+        setNextMidnight();
+      }
+  
     setWordSet(new Set());
-    setUsedWords([newWord.toUpperCase()]); // Include starting word in final chain
-
-    setTimeLeft(60);
-    setIsTimerRunning(false);
-
-    setGameOver(false);
-    setPoints(0);
-    setFade(false);
-
-    // Clear any existing message and its timeout
-    if (messageTimeoutRef.current) { clearTimeout(messageTimeoutRef.current) };
+    setUsedWords([currentWord]);
+  
+    // Clears all message upon a reset
+    if (messageTimeoutRef.current) { clearTimeout(messageTimeoutRef.current); }
     setMessage("");
     setMessageType("");
     setMessageKey(0);
-  };
+  }, [gameMode]);
 
-  // Timer countdown
+  // Switch between classic/journey modes thru toggle button
+  const toggleGameMode = useCallback(() => {
+    setGameMode(prevMode => prevMode === 'classic' ? 'journey' : 'classic');
+    resetGame();
+  }, []);
+
+
+  // Timer countdown; this is really fucked up isn't it
   useEffect(() => {
     let timerId;
-    // Only decrement timer under these conditions
-    if (isTimerRunning && timeLeft > 0 && !gameOver && !modalOpen) {
+    // Only decrement under these conditions
+    if (isTimerRunning && timeLeft > 0 && !gameOver && !firstTimeModalOpen) {
       timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-    } else if (timeLeft === 0 && !fade) { // Fade to game over screen
-      setFade(true);
-      setTimeout(() => setGameOver(true), 3000);
+    } else if (timeLeft === 0 && !fade) { // If the game is over, start fading
+      timerId = setTimeout(async () => {
+        setFade(true);
+        saveScore(points);
+        if (gameMode === 'journey') { // If we're in journey mode and time runs out, that's it
+        }
+        setTimeout(() => setGameOver(true), 2000); // Show game over after fade completes
+      }, 1000); // 1 second delay before starting fade
     }
     return () => clearTimeout(timerId);
-  }, [timeLeft, gameOver, fade, isTimerRunning, modalOpen]);
+  }, [timeLeft, gameOver, fade, isTimerRunning, firstTimeModalOpen, points, gameMode]);
 
+  // Handles user input
   const handleChange = (event) => {
     setInputWord(event.target.value.toUpperCase());
     if (!isTimerRunning) {
@@ -132,6 +189,7 @@ function App() {
     }
   }
 
+  // Displaying success/failure messages
   const showMessage = (text, type) => {
     // Clear any existing timeout
     if (messageTimeoutRef.current) {
@@ -188,103 +246,125 @@ function App() {
       setUsedWords((prevWords) => [...prevWords, wordToCheck.toUpperCase()]); // Add new word for in order display at the end
       setPoints(points + 10); // Each valid word is +10 pts
       setCurrentWord(inputWord);
-      showMessage("Good job! The words are semantically related.", "success");
+
+      // If the user reaches the targetWord in journey mode, end the game
+      // User won't be able to play again until midnight
+      if (gameMode === 'journey' && inputWord.toUpperCase() === targetWord) {
+        showMessage("You've reached the target word!", "success");
+        setTimeout(() => setGameOver(true), 2000);
+      }
+
+      else { // Else we are in classic mode, just keep going
+        showMessage("Good job! The words are semantically related.", "success");
+      }
+
       setShowScore(true); // Show the score animation
       setTimeout(() => setShowScore(false), 1000); // Hide the score after 1 seconds
-    } else {
+    }
+
+    else {
       showMessage("The words are not semantically related.", "error");
     }
+
     setInputWord("");
   };
 
+  // Rendering a single start word
   const renderWord = (word) => {
     return word
       .split("")
       .map((letter, index) => <span key={index}>{letter}</span>);
   };
 
+  // For journey mode, we render both words with an arrow in between
+  const renderWordDisplay = () => {
+    if (gameMode === 'classic') {
+      return <p className="word-display">{renderWord(currentWord)}</p>;
+    } else {
+      return (
+        <p className="word-display">
+          {renderWord(currentWord)} → {renderWord(targetWord)}
+        </p>
+      );
+    }
+  };
+
+  const saveScore = async (score) => {
+    if (score <= 0) {
+      return; // We don't want to flood the DB with 0 scores
+    }
+
+    // Only save score if user isn't anonymous
+    const user = auth.currentUser;
+    if (!user) {
+      console.error("User not authenticated");
+      return;
+    }
+
+    try {
+      const idToken = await user.getIdToken();
+      const response = await fetch('http://localhost:3000/api/scores', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': idToken
+        },
+        body: JSON.stringify({ score }),
+      });
+      if (!response.ok) throw new Error('Failed to save score');
+      console.log('Score saved successfully');
+    } catch (error) {
+      console.error("Error saving score:", error);
+    }
+  };
+  
+  const recordGamePlayed = async () => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (user) {
+      try {
+        const idToken = await user.getIdToken();
+        const response = await fetch('http://localhost:3000/api/journey-state', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': idToken
+          },
+          body: JSON.stringify({ lastPlayed: today }),
+        });
+        if (!response.ok) throw new Error('Failed to update journey state');
+        console.log('Journey state updated successfully');  // Debug log
+      } catch (error) {
+        console.error("Error recording game played:", error);
+      }
+    } else {
+      // For anonymous users, update local storage
+      localStorage.setItem('lastPlayedJourney', today);
+    }
+  };
+
+
   return (
     <div className="container">
-      <Modal
-        open={modalOpen}
-        onClose={handleCloseModal}
-        center
-        classNames={{
-          modal: "customModal",
-        }}
-      >
-        <h2>Welcome to Word Ripple!</h2>
-        <p>Here’s how to play:</p>
-        <ul>
-          <li>
-            Start with one word in the center of the screen, such as "Ocean".
-          </li>
-          <li>
-            Enter a new word that is semantically related to the current one.
-            For example, from "Ocean" you could enter "Water" because they are
-            synonyms.
-          </li>
-          <li>
-            Each valid word earns you points. The challenge is to see how far
-            you can shift the meaning from the original word by the end of the
-            game, like going from "Ocean" to "Glass" by making semantically
-            related changes at each step.
-          </li>
-          <li>
-            The goal is to form as many valid words as possible before the time
-            runs out!
-          </li>
-        </ul>
-        <p>Words can be related in several ways, including:</p>
-        <ul>
-          <li>
-            <strong>Synonyms:</strong> (like "Ocean" and "Sea")
-          </li>
-          <li>
-            <strong>Antonyms:</strong> (like "Late" and "Early")
-          </li>
-          <li>
-            <strong>Homophones:</strong> (like "Course" and "Coarse")
-          </li>
-          <li>
-            <strong>Hyponyms:</strong> (more specific instances, like "Gondola"
-            is a kind of "Boat")
-          </li>
-          <li>
-            <strong>Hypernyms:</strong> (more general terms, like "Boat" for
-            "Gondola")
-          </li>
-          <li>
-            <strong>Meronyms:</strong> (part-whole relations, like "Wheel" is
-            part of "Car")
-          </li>
-          <li>
-            <strong>Holonyms:</strong> (whole-part relations, like "Tree" is
-            comprised of "Trunk" and "Branches")
-          </li>
-          <li>
-            <strong>Other lexical relations</strong> based on context or usage,
-            such as "Milk" and "Cow" (triggers)
-          </li>
-        </ul>
-        <button onClick={handleCloseModal}>Play</button>
-        <div className="modalFooter">
-          Powered by{" "}
-          <a
-            href="https://www.datamuse.com/api/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Datamuse API
-          </a>
-        </div>
-      </Modal>
+
+      <InstructionsModal
+        open={firstTimeModalOpen}
+        onClose={handleCloseFirstTimeModal}
+      />
+
+      <InstructionsModal
+        open={helpModalOpen}
+        onClose={handleCloseHelpModal}
+      />
 
       <Header
         user={user}
         handleLogout={handleLogout}
         openLoginModal={() => setLoginModalOpen(true)}
         openSignUpModal={() => setSignUpModalOpen(true)}
+        openHelpModal={openHelpModal}
+        gameMode={gameMode}
+        toggleGameMode={toggleGameMode}
       />
 
       <LoginModal
@@ -317,15 +397,20 @@ function App() {
         <div
           className={`game-over-screen ${gameOver ? "game-over-active" : ""}`}
         >
-          <h1 className="game-over-message fade-in">Game Over!</h1>
-          <p className="total-points fade-in">Total points: {points}</p>
-          <button className="restart-button game-button fade-in" onClick={resetGame}>
-            Restart Game
-          </button>
+          <div className={`game-over-content ${isSmallScreen ? 'small-screen' : isMediumScreen ? 'medium-screen' : 'large-screen'}`}>
+            <h1 className="game-over-message fade-in delay-1">Game Over!</h1>
+            <div className="leaderboard-container fade-in delay-2">
+              <Leaderboard />
+            </div>
+            <p className="total-points fade-in delay-3">Total points: {points}</p>
+            <button className="restart-button game-button fade-in delay-4" onClick={resetGame}>
+              Go Back
+            </button>
+          </div>
         </div>
       ) : (
         <div className={`game-container main-app-content ${fade ? "fade-out" : ""}`}>
-          <p className="word-display">{renderWord(currentWord)}</p>
+          {renderWordDisplay()}
           <div className="form-container">
             <div className="score-animation-container">
               {showScore && <span className="score-animation">+10</span>}
@@ -338,9 +423,11 @@ function App() {
                 autoFocus
               />
               <button type="submit">Submit</button>
-              <button type="button" onClick={resetGame}>
-                Reset
-              </button>
+              {gameMode === 'classic' && (
+                <button type="button" onClick={resetGame}>
+                  Reset
+                </button>
+              )}
             </form>
             <div className="message-container">
               {message && (

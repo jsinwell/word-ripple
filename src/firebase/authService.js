@@ -1,16 +1,6 @@
 import { auth, provider } from "./firebase-config";
 import { signInWithPopup, signOut } from "firebase/auth";
 
-export const loginWithGoogle = () => {
-  return signInWithPopup(auth, provider)
-    .then((result) => {
-      return result.user;
-    })
-    .catch((error) => {
-      throw error;
-    });
-};
-
 export const logoutUser = () => {
   return signOut(auth)
   .then(() => {
