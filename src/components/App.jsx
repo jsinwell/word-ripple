@@ -67,7 +67,7 @@ function App() {
   const [gameOver, setGameOver] = useState(false);
   const [fade, setFade] = useState(false); // Controls fading out the main screen
 
-  const [gameMode, setGameMode] = useState('classic'); // 'classic' or 'journey' gamemode
+  const [gameMode, setGameMode] = useState('journey'); // 'classic' or 'journey' gamemode
   const [targetWord, setTargetWord] = useState(""); // Journey mode ending word
   const dailyWordsRef = useRef(null);
 
@@ -77,7 +77,17 @@ function App() {
 
   useEffect(() => {
     resetGame();
-  }, [gameMode]);
+  }, []);
+
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      console.log("Auth state changed:", currentUser); // Add this line for debugging
+      setUser(currentUser);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Only show the instruction modal if the user has visited the page for the first time
   useEffect(() => {
@@ -115,53 +125,42 @@ function App() {
 
   // Reset the game to a clean state. Depends on which game mode is selected
   // Seriously what the fuck is this
-  const resetGame = useCallback(async () => {
-    if (gameMode === 'classic') {
+  const resetGame = useCallback((mode = gameMode) => {
+    if (mode === 'classic') {
       const newWord = getRandomWord();
       setCurrentWord(newWord.toUpperCase());
       setTargetWord("");
-      setTimeLeft(60);
-      setIsTimerRunning(false);
-      setGameOver(false);
-      setPoints(0);
-      setFade(false);
-    } 
-    
-    else if (gameMode === 'journey') {
-        if (!dailyWordsRef.current) {
-          dailyWordsRef.current = getDailyWords();
-        }
-        const { startWord, endWord } = dailyWordsRef.current;
-        setCurrentWord(startWord.toUpperCase());
-        setTargetWord(endWord.toUpperCase());
-        setTimeLeft(60);
-        setIsTimerRunning(false);
-        setGameOver(false);
-        setPoints(0);
-        setFade(false);
-      } 
-      
-      else {
-        setDailyGamePlayed(true);
-        setNextMidnight();
+    } else if (mode === 'journey') {
+      if (!dailyWordsRef.current) {
+        dailyWordsRef.current = getDailyWords();
       }
+      const { startWord, endWord } = dailyWordsRef.current;
+      setCurrentWord(startWord.toUpperCase());
+      setTargetWord(endWord.toUpperCase());
+    }
   
+    setTimeLeft(60);
+    setIsTimerRunning(false);
+    setGameOver(false);
+    setPoints(0);
+    setFade(false);
     setWordSet(new Set());
-    setUsedWords([currentWord]);
+    setUsedWords([]);
   
-    // Clears all message upon a reset
     if (messageTimeoutRef.current) { clearTimeout(messageTimeoutRef.current); }
     setMessage("");
     setMessageType("");
     setMessageKey(0);
   }, [gameMode]);
-
+  
   // Switch between classic/journey modes thru toggle button
   const toggleGameMode = useCallback(() => {
-    setGameMode(prevMode => prevMode === 'classic' ? 'journey' : 'classic');
-    resetGame();
+    setGameMode(prevMode => {
+      const newMode = prevMode === 'classic' ? 'journey' : 'classic';
+      resetGame(newMode);
+      return newMode;
+    });
   }, []);
-
 
   // Timer countdown; this is really fucked up isn't it
   useEffect(() => {
@@ -317,32 +316,6 @@ function App() {
       console.error("Error saving score:", error);
     }
   };
-  
-  const recordGamePlayed = async () => {
-    const today = new Date().toISOString().split('T')[0];
-    
-    if (user) {
-      try {
-        const idToken = await user.getIdToken();
-        const response = await fetch('http://localhost:3000/api/journey-state', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': idToken
-          },
-          body: JSON.stringify({ lastPlayed: today }),
-        });
-        if (!response.ok) throw new Error('Failed to update journey state');
-        console.log('Journey state updated successfully');  // Debug log
-      } catch (error) {
-        console.error("Error recording game played:", error);
-      }
-    } else {
-      // For anonymous users, update local storage
-      localStorage.setItem('lastPlayedJourney', today);
-    }
-  };
-
 
   return (
     <div className="container">
@@ -403,7 +376,7 @@ function App() {
               <Leaderboard />
             </div>
             <p className="total-points fade-in delay-3">Total points: {points}</p>
-            <button className="restart-button game-button fade-in delay-4" onClick={resetGame}>
+            <button className="restart-button game-button fade-in delay-4" onClick={() => resetGame()}>
               Go Back
             </button>
           </div>
@@ -424,7 +397,7 @@ function App() {
               />
               <button type="submit">Submit</button>
               {gameMode === 'classic' && (
-                <button type="button" onClick={resetGame}>
+                <button type="button" onClick={() => resetGame()}>
                   Reset
                 </button>
               )}
