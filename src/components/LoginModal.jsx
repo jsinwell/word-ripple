@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Modal } from 'react-responsive-modal';
-import { signInWithEmailAndPassword, signInWithPopup, setPersistence, browserSessionPersistence, browserLocalPersistence } from "firebase/auth";
+import { signInWithEmailAndPassword, sendPasswordResetEmail, signInWithPopup, setPersistence, browserSessionPersistence, browserLocalPersistence } from "firebase/auth";
 import { auth, provider } from '../firebase/firebase-config';
+
 import 'react-responsive-modal/styles.css';
 import "../styles/AuthModal.css";
 
@@ -44,13 +45,19 @@ const LoginModal = ({ open, onClose, onSignUpClick }) => {
             .then(() => {
                 return signInWithEmailAndPassword(auth, email, password);
             })
-            .then(() => {
+            .then((userCredential) => {
+                if (!userCredential.user.emailVerified) {
+                    // Sign out the user immediately if email is not verified
+                    auth.signOut();
+                    throw new Error('Please verify your email before logging in.');
+                }
                 onClose();
-                window.location.reload();
             })
             .catch((error) => {
                 if (error.code === 'auth/invalid-credential') {
                     setLoginError('Invalid email or password.');
+                } else if (error.message === 'Please verify your email before logging in.') {
+                    setLoginError(error.message);
                 } else {
                     setLoginError('An error occurred. Please try again.');
                     console.error("Error signing in with email/password", error);
@@ -70,6 +77,23 @@ const LoginModal = ({ open, onClose, onSignUpClick }) => {
             })
             .catch((error) => {
                 console.error("Error signing in with Google", error);
+            });
+    };
+
+    const handleForgotPassword = () => {
+        if (!email) {
+            setLoginError('Please enter your email address.');
+            return;
+        }
+
+        sendPasswordResetEmail(auth, email)
+            .then(() => {
+                setLoginError(''); // Clear any existing error
+                alert('Password reset email sent. Check your inbox.');
+            })
+            .catch((error) => {
+                console.error("Error sending password reset email", error);
+                setLoginError('Failed to send password reset email. Please try again.');
             });
     };
 
@@ -101,6 +125,7 @@ const LoginModal = ({ open, onClose, onSignUpClick }) => {
                             type="button"
                             className="password-toggle"
                             onClick={() => setShowPassword(!showPassword)}
+                            tabIndex="-1"
                         >
                             <i className={`fa ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                         </button>
@@ -115,13 +140,13 @@ const LoginModal = ({ open, onClose, onSignUpClick }) => {
                     />
                     <label htmlFor="rememberMe">Remember me</label>
                 </div>
-                <div className="forgot-password">Forgot password?</div>
-                
+                <div className="forgot-password" onClick={handleForgotPassword}>Forgot password?</div>
+
                 <div className="error-messages">
                     {loginError && <p className="error-message">{loginError}</p>}
                 </div>
 
-                <button type="submit" className="auth-button">Login</button>
+                <button type="submit" className="auth-button">Sign In</button>
             </form>
             <div className="auth-divider"><span>Or</span></div>
             <button onClick={handleGoogleLogin} className="social-button">

@@ -4,7 +4,7 @@ import { faArrowRightToBracket, faUserPlus, faRightFromBracket } from '@fortawes
 import { faCircleQuestion } from '@fortawesome/free-regular-svg-icons';
 import "../styles/Header.css";
 
-const Header = ({ user, handleLogout, openLoginModal, openSignUpModal, openHelpModal, gameMode, toggleGameMode }) => {
+const Header = ({ user, isEmailVerified, handleLogout, openLoginModal, openSignUpModal, openHelpModal, gameMode, toggleGameMode }) => {
     // Get first name of user
     const getFirstName = (fullName) => {
         return fullName ? fullName.split(' ')[0] : '';
@@ -14,13 +14,18 @@ const Header = ({ user, handleLogout, openLoginModal, openSignUpModal, openHelpM
         <header className="app-header">
             <h1 className="title">Word Ripple</h1>
             <div className="auth-container">
+                {user && isEmailVerified ? (
+                    <span className="user-greeting">Welcome, {getFirstName(user.displayName || user.email)}</span>
+                ) : null}
+
+                <button onClick={toggleGameMode} className="header-auth-button">
+                    {gameMode === 'classic' ? 'Journey Mode' : 'Classic Mode'}
+                </button>
+
                 {user ? (
-                    <>
-                        <span className="user-greeting">Welcome, {getFirstName(user.displayName || user.email)}</span>
-                        <button onClick={handleLogout} className="header-auth-button">
-                            <FontAwesomeIcon icon={faRightFromBracket} /> Logout
-                        </button>
-                    </>
+                    <button onClick={handleLogout} className="header-auth-button">
+                        <FontAwesomeIcon icon={faRightFromBracket} /> Logout
+                    </button>
                 ) : (
                     <>
                         <button onClick={openLoginModal} className="header-auth-button">
@@ -34,10 +39,6 @@ const Header = ({ user, handleLogout, openLoginModal, openSignUpModal, openHelpM
 
                 <button className="help-button" onClick={openHelpModal}>
                     <FontAwesomeIcon icon={faCircleQuestion} />
-                </button>
-
-                <button onClick={toggleGameMode} className="header-auth-button">
-                    {gameMode === 'classic' ? 'Journey Mode' : 'Classic Mode'}
                 </button>
             </div>
         </header>

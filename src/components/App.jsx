@@ -13,11 +13,12 @@ import SignUpModal from "./SignupModal";
 import "../styles/App.css";
 
 // Function to get a single daily word pair in journey mode for all users
+// Regardless of local time
 const getDailyWords = () => {
-  const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+  const today = new Date().toLocaleDateString('en-CA'); // Get today's date in YYYY-MM-DD format
   let seed = parseInt(today.replace(/-/g, ''), 10); // Convert date to number for seeding
 
-  // Use the seed to generate consistent random words for the day
+  // Use the seed to generate random words for the day
   const getSeededRandomWord = () => {
     seed = (seed * 9301 + 49297) % 233280;
     return getRandomWord(seed / 233280);
@@ -35,6 +36,7 @@ const getDailyWords = () => {
 
 function App() {
   const [user, setUser] = useState(null);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
 
   // Instructions modal
   const [firstTimeModalOpen, setFirstTimeModalOpen] = useState(() => {
@@ -58,7 +60,6 @@ function App() {
   const [showScore, setShowScore] = useState(false);
 
   const [wordSet, setWordSet] = useState(new Set()); // Look up previously used words
-  const [usedWords, setUsedWords] = useState([]); // Track order of user's words
 
   const [timeLeft, setTimeLeft] = useState(60); // 5 minute timer
   const [isTimerRunning, setIsTimerRunning] = useState(false); // Is the timer running?
@@ -69,21 +70,72 @@ function App() {
 
   const [gameMode, setGameMode] = useState('journey'); // 'classic' or 'journey' gamemode
   const [targetWord, setTargetWord] = useState(""); // Journey mode ending word
+  const [hasCompletedJourneyToday, setHasCompletedJourneyToday] = useState(false);
+
   const dailyWordsRef = useRef(null);
 
   // React responsive media queries
   const isSmallScreen = useMediaQuery({ maxWidth: 600 });
   const isMediumScreen = useMediaQuery({ minWidth: 601, maxWidth: 1024 });
 
+  // Initialization and utility functions
   useEffect(() => {
+    checkIfCompletedJourneyToday();
     resetGame();
+  }, []);
+
+  // Mark todays journey as completed in local storage
+  const markJourneyAsCompletedToday = () => {
+    const today = new Date().toLocaleDateString('en-CA');
+    localStorage.setItem('lastCompletedJourneyDate', today);
+    setHasCompletedJourneyToday(true);
+  };
+
+  // Check today's journey completed value in our local storage
+  const checkIfCompletedJourneyToday = () => {
+    const lastCompletedDate = localStorage.getItem('lastCompletedJourneyDate');
+    const today = new Date().toLocaleDateString('en-CA');
+
+    const completed = lastCompletedDate === today;
+    setHasCompletedJourneyToday(completed);
+    return completed;
+  };
+
+  useEffect(() => {
+    // Check completion status on mount
+    checkIfCompletedJourneyToday();
+
+    // Set up a timer to check every minute
+    const timer = setInterval(() => {
+      const now = new Date();
+      if (now.getHours() === 0 && now.getMinutes() === 0) {
+        // It's midnight, reset the completion status
+        checkIfCompletedJourneyToday();
+      }
+    }, 60000); // Check every minute
+
+    // Clean up the timer on unmount
+    return () => clearInterval(timer);
   }, []);
 
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      console.log("Auth state changed:", currentUser); // Add this line for debugging
-      setUser(currentUser);
+      if (currentUser) {
+        // Check if the user's email is verified
+        if (currentUser.emailVerified) {
+          setUser(currentUser);
+          setIsEmailVerified(true);
+        } else {
+          setUser(null);
+          setIsEmailVerified(false);
+          // Sign out the user
+          auth.signOut();
+        }
+      } else {
+        setUser(null);
+        setIsEmailVerified(false);
+      }
     });
 
     return () => unsubscribe();
@@ -126,59 +178,77 @@ function App() {
   // Reset the game to a clean state. Depends on which game mode is selected
   // Seriously what the fuck is this
   const resetGame = useCallback((mode = gameMode) => {
+    if (mode === 'journey' && hasCompletedJourneyToday) {
+      return;
+    }
+
+    let newStartWord = "";
+    let newTargetWord = "";
+
     if (mode === 'classic') {
-      const newWord = getRandomWord();
-      setCurrentWord(newWord.toUpperCase());
-      setTargetWord("");
+      newStartWord = getRandomWord().toUpperCase();
     } else if (mode === 'journey') {
       if (!dailyWordsRef.current) {
         dailyWordsRef.current = getDailyWords();
       }
       const { startWord, endWord } = dailyWordsRef.current;
-      setCurrentWord(startWord.toUpperCase());
-      setTargetWord(endWord.toUpperCase());
+      newStartWord = startWord.toUpperCase();
+      newTargetWord = endWord.toUpperCase();
     }
-  
+
+    setCurrentWord(newStartWord);
+    setTargetWord(newTargetWord);
     setTimeLeft(60);
     setIsTimerRunning(false);
     setGameOver(false);
     setPoints(0);
     setFade(false);
     setWordSet(new Set());
-    setUsedWords([]);
-  
-    if (messageTimeoutRef.current) { clearTimeout(messageTimeoutRef.current); }
+
+    if (messageTimeoutRef.current) {
+      clearTimeout(messageTimeoutRef.current);
+    }
     setMessage("");
     setMessageType("");
     setMessageKey(0);
-  }, [gameMode]);
-  
+  }, [gameMode, hasCompletedJourneyToday]);
+
+
   // Switch between classic/journey modes thru toggle button
   const toggleGameMode = useCallback(() => {
     setGameMode(prevMode => {
       const newMode = prevMode === 'classic' ? 'journey' : 'classic';
+      if (newMode === 'journey' && hasCompletedJourneyToday) {
+        // Don't reset the game if switching to completed journey mode
+        return newMode;
+      }
       resetGame(newMode);
       return newMode;
     });
-  }, []);
+  }, [resetGame, hasCompletedJourneyToday]);
+
 
   // Timer countdown; this is really fucked up isn't it
   useEffect(() => {
     let timerId;
-    // Only decrement under these conditions
     if (isTimerRunning && timeLeft > 0 && !gameOver && !firstTimeModalOpen) {
       timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-    } else if (timeLeft === 0 && !fade) { // If the game is over, start fading
-      timerId = setTimeout(async () => {
-        setFade(true);
-        saveScore(points);
-        if (gameMode === 'journey') { // If we're in journey mode and time runs out, that's it
-        }
-        setTimeout(() => setGameOver(true), 2000); // Show game over after fade completes
-      }, 1000); // 1 second delay before starting fade
+    } else if (timeLeft === 0 && !fade) {
+      if (gameMode === 'classic') {
+      setFade(true);
+      saveScore(points); // Only save scores for classic mode
+      }
+
+      else if (gameMode === 'journey') {
+        markJourneyAsCompletedToday();
+      }
+
+      setTimeout(() => setGameOver(true), 2000);
     }
+
     return () => clearTimeout(timerId);
   }, [timeLeft, gameOver, fade, isTimerRunning, firstTimeModalOpen, points, gameMode]);
+
 
   // Handles user input
   const handleChange = (event) => {
@@ -242,7 +312,6 @@ function App() {
     );
     if (related) {
       setWordSet((prevSet) => new Set(prevSet.add(wordToCheck))); // Add new word to used words set for later lookup
-      setUsedWords((prevWords) => [...prevWords, wordToCheck.toUpperCase()]); // Add new word for in order display at the end
       setPoints(points + 10); // Each valid word is +10 pts
       setCurrentWord(inputWord);
 
@@ -250,15 +319,17 @@ function App() {
       // User won't be able to play again until midnight
       if (gameMode === 'journey' && inputWord.toUpperCase() === targetWord) {
         showMessage("You've reached the target word!", "success");
+        markJourneyAsCompletedToday();
         setTimeout(() => setGameOver(true), 2000);
       }
 
-      else { // Else we are in classic mode, just keep going
+      // Only show score animation in classic mode
+      else { 
         showMessage("Good job! The words are semantically related.", "success");
+        setShowScore(true); // Show the score animation
+        setTimeout(() => setShowScore(false), 1000); // Hide the score after 1 seconds
       }
 
-      setShowScore(true); // Show the score animation
-      setTimeout(() => setShowScore(false), 1000); // Hide the score after 1 seconds
     }
 
     else {
@@ -332,6 +403,7 @@ function App() {
 
       <Header
         user={user}
+        isEmailVerified={isEmailVerified}
         handleLogout={handleLogout}
         openLoginModal={() => setLoginModalOpen(true)}
         openSignUpModal={() => setSignUpModalOpen(true)}
@@ -360,33 +432,46 @@ function App() {
 
 
       <div className={`game-info ${fade ? "fade-out" : ""}`}>
+        {!(gameMode === 'journey' && hasCompletedJourneyToday) && (
         <div>
           Time left: {Math.floor(timeLeft / 60)}:
           {(timeLeft % 60).toString().padStart(2, "0")}
         </div>
-        <div>Points: {points}</div>
+        )}
+        {gameMode === "classic" && <div>Points: {points}</div>}
       </div>
-      {gameOver ? (
-        <div
-          className={`game-over-screen ${gameOver ? "game-over-active" : ""}`}
-        >
-          <div className={`game-over-content ${isSmallScreen ? 'small-screen' : isMediumScreen ? 'medium-screen' : 'large-screen'}`}>
-            <h1 className="game-over-message fade-in delay-1">Game Over!</h1>
-            <div className="leaderboard-container fade-in delay-2">
-              <Leaderboard />
+
+      {gameMode === 'journey' && hasCompletedJourneyToday ? (
+        <div className="completed-journey-screen fade-in">
+          <h2>Today's Journey Completed!</h2>
+          <p>Check back at midnight for the next game, or continue in Classic Mode</p>
+        </div>
+      ) : gameOver ? (
+        <div className={`game-over-screen ${gameOver ? "game-over-active" : ""}`}>
+          {gameMode === 'classic' ? (
+            <div className={`game-over-content ${isSmallScreen ? 'small-screen' : isMediumScreen ? 'medium-screen' : 'large-screen'}`}>
+              <h1 className="game-over-message fade-in delay-1">Game Over!</h1>
+              <div className="leaderboard-container fade-in delay-2">
+                <Leaderboard />
+              </div>
+              <p className="total-points fade-in delay-3">Total points: {points}</p>
+              <button className="restart-button game-button fade-in delay-4" onClick={() => resetGame()}>
+                Play Again
+              </button>
             </div>
-            <p className="total-points fade-in delay-3">Total points: {points}</p>
-            <button className="restart-button game-button fade-in delay-4" onClick={() => resetGame()}>
-              Go Back
-            </button>
-          </div>
+          ) : (
+            <div className="completed-journey-screen fade-in">
+              <h2>Today's Journey Completed!</h2>
+              <p>Check back at midnight for the next game, or continue in Classic Mode</p>
+            </div>
+          )}
         </div>
       ) : (
         <div className={`game-container main-app-content ${fade ? "fade-out" : ""}`}>
           {renderWordDisplay()}
           <div className="form-container">
             <div className="score-animation-container">
-              {showScore && <span className="score-animation">+10</span>}
+              {(showScore && gameMode === 'classic') && <span className="score-animation">+10</span>}
             </div>
             <form onSubmit={handleSubmit}>
               <input

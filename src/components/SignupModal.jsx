@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal } from 'react-responsive-modal';
-import { createUserWithEmailAndPassword, signInWithPopup, setPersistence, browserSessionPersistence, browserLocalPersistence } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendEmailVerification, signInWithPopup, setPersistence, browserSessionPersistence, browserLocalPersistence } from "firebase/auth";
 import { auth, provider } from '../firebase/firebase-config';
 import 'react-responsive-modal/styles.css';
 import "../styles/AuthModal.css";
@@ -59,9 +59,16 @@ const SignUpModal = ({ open, onClose, onLoginClick }) => {
             .then(() => {
                 return createUserWithEmailAndPassword(auth, email, password);
             })
+            .then((userCredential) => {
+                // Send verification email
+                return sendEmailVerification(userCredential.user);
+            })
+            .then(() => {
+                alert('Verification email sent. Please check your inbox and verify your email before logging in.');
+                return auth.signOut();
+            })
             .then(() => {
                 onClose();
-                window.location.reload(); // Refresh the page
             })
             // Displaying error messages (email in use, weak password, generic)
             .catch((error) => {
@@ -118,6 +125,7 @@ const SignUpModal = ({ open, onClose, onLoginClick }) => {
                             type="button"
                             className="password-toggle"
                             onClick={() => setShowPassword(!showPassword)}
+                            tabIndex="-1"
                         >
                             <i className={`fa ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                         </button>
@@ -137,6 +145,7 @@ const SignUpModal = ({ open, onClose, onLoginClick }) => {
                             type="button"
                             className="password-toggle"
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            tabIndex="-1"
                         >
                             <i className={`fa ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                         </button>

@@ -30,14 +30,10 @@ html {
   align-items: center;
 }
 
-.title {
-  margin: 20px 0;
-}
-
 .game-info {
   display: flex;
   justify-content: center;
-  margin-top: 5px;
+  margin-top: 20px;
 }
 
 .game-info > div {
@@ -195,7 +191,7 @@ html {
   left: 0;
   width: 100%;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.9);
+  background: rgba(15, 23, 41, 0.95);
   z-index: 10;
   opacity: 0;
   animation: fadeIn 1s ease forwards 0.5s;
@@ -206,110 +202,135 @@ html {
   flex-direction: column;
   align-items: center;
   width: 90%;
-  max-width: 600px;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  padding: 15px;
+  background: #1a1f35;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
 }
 
 .game-over-message {
   color: #fff;
-  font-size: 40px;
+  font-size: 28px;
   margin: 20px 0;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  font-weight: 700;
 }
 
 .leaderboard-container {
   width: 100%;
-  margin: 20px 0;
+  margin: 10px 0;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 10px;
 }
 
 .leaderboard-table {
   width: 100%;
-  border-collapse: collapse;
-  color: #fff;
-  font-size: 16px;
+  border-collapse: separate;
+  border-spacing: 0 5px;
+  color: #f0f0f0;
+  font-size: 12px;
 }
 
 .leaderboard-table th,
 .leaderboard-table td {
-  padding: 10px;
+  padding: 6px 8px;
   text-align: left;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .leaderboard-table th {
   font-weight: bold;
   text-transform: uppercase;
-  color: #4CAF50;
+  color: #8e99f3;
+  border-bottom: 1px solid #5c6bc0;
+}
+
+.leaderboard-table tr {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.leaderboard-table tr:hover {
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .total-points {
   color: #fff;
-  font-size: 24px;
-  margin: 20px 0;
+  font-size: 18px;
+  margin: 10px 0;
 }
 
 .restart-button {
-  font-size: 20px;
-  padding: 12px 24px;
-  margin: 20px 0;
-  background-color: #4CAF50;
+  font-size: 14px;
+  padding: 8px 16px;
+  margin: 10px 0;
+  background: linear-gradient(to right, #5c6bc0, #8e99f3);
   border: none;
   color: white;
-  border-radius: 10px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s ease;
   text-transform: uppercase;
-  letter-spacing: 1px;
 }
 
 .restart-button:hover {
-  background-color: #45a049;
-  transform: scale(1.05);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(92, 107, 192, 0.3);
 }
 
-.delay-1 { animation-delay: 1s; }
-.delay-2 { animation-delay: 1.5s; }
-.delay-3 { animation-delay: 2s; }
-.delay-4 { animation-delay: 2.5s; }
+.delay-1 { animation-delay: 0.5s; }
+.delay-2 { animation-delay: 0.75s; }
+.delay-3 { animation-delay: 1s; }
+.delay-4 { animation-delay: 1.25s; }
 
-/* Game over screen reponsive design */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @media (max-width: 600px) {
   .game-over-message {
-    font-size: 36px;
+    font-size: 24px;
   }
 
   .leaderboard-table {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .total-points {
-    font-size: 20px;
+    font-size: 16px;
   }
 
   .restart-button {
-    font-size: 16px;
-    padding: 10px 20px;
+    font-size: 12px;
+    padding: 8px 14px;
   }
 }
 
 @media (min-width: 601px) and (max-width: 1024px) {
   .game-over-message {
-    font-size: 40px;
+    font-size: 26px;
   }
 
   .leaderboard-table {
-    font-size: 15px;
+    font-size: 12px;
   }
 
   .total-points {
-    font-size: 22px;
+    font-size: 17px;
   }
 
   .restart-button {
-    font-size: 18px;
-    padding: 11px 22px;
+    font-size: 13px;
+    padding: 8px 15px;
   }
+}
+
+.completed-journey-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 70vh;
 }
