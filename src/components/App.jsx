@@ -61,8 +61,10 @@ function App() {
 
   const [wordSet, setWordSet] = useState(new Set()); // Look up previously used words
 
-  const [timeLeft, setTimeLeft] = useState(60); // 5 minute timer
-  const [isTimerRunning, setIsTimerRunning] = useState(false); // Is the timer running?
+  const [timeLeft, setTimeLeft] = useState(300); // 5 minute timer for `classic` mode
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+
+  const [elapsedTime, setElapsedTime] = useState(0); // timer for `journey` mode
 
   const [points, setPoints] = useState(0); // Count how many points user has
   const [gameOver, setGameOver] = useState(false);
@@ -78,45 +80,83 @@ function App() {
   const isSmallScreen = useMediaQuery({ maxWidth: 600 });
   const isMediumScreen = useMediaQuery({ minWidth: 601, maxWidth: 1024 });
 
+
+  // Mark todays journey as completed
+  const markJourneyAsCompletedToday = async () => {
+    if (!auth.currentUser) {
+      // Fall back to local storage for anonymous users
+      const today = new Date().toLocaleDateString('en-CA');
+      localStorage.setItem('lastCompletedJourneyDate', today);
+      setHasCompletedJourneyToday(true);
+      return;
+    }
+
+    // Post to database for authenticated users
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      await fetch('http://localhost:3000/api/journey/complete', {
+        method: 'POST',
+        headers: {
+          'Authorization': idToken,
+          'Content-Type': 'application/json'
+        }
+      });
+      setHasCompletedJourneyToday(true);
+    } catch (error) {
+      console.error('Error marking journey as completed:', error);
+    }
+  };
+
+  // Check today's journey completed value
+  const checkIfCompletedJourneyToday = async () => {
+    if (!auth.currentUser) {
+      // Fall back to local storage for anonymous users
+      const lastCompletedDate = localStorage.getItem('lastCompletedJourneyDate');
+      const today = new Date().toLocaleDateString('en-CA');
+      const completed = lastCompletedDate === today;
+      setHasCompletedJourneyToday(completed);
+      return completed;
+    }
+
+    // Read from database for authenticated users
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      const response = await fetch('http://localhost:3000/api/journey/check', {
+        headers: {
+          'Authorization': idToken
+        }
+      });
+      const data = await response.json();
+      // Data should return true if user has already completed today's journey
+      setHasCompletedJourneyToday(data.completed);
+      return data.completed;
+    } catch (error) {
+      console.error('Error checking journey completion:', error);
+      setHasCompletedJourneyToday(false);
+      return false;
+    }
+  };
+
   // Initialization and utility functions
   useEffect(() => {
-    checkIfCompletedJourneyToday();
-    resetGame();
-  }, []);
+    const initializeGame = async () => {
+      await checkIfCompletedJourneyToday();
+      resetGame();
+    };
 
-  // Mark todays journey as completed in local storage
-  const markJourneyAsCompletedToday = () => {
-    const today = new Date().toLocaleDateString('en-CA');
-    localStorage.setItem('lastCompletedJourneyDate', today);
-    setHasCompletedJourneyToday(true);
-  };
+    initializeGame();
 
-  // Check today's journey completed value in our local storage
-  const checkIfCompletedJourneyToday = () => {
-    const lastCompletedDate = localStorage.getItem('lastCompletedJourneyDate');
-    const today = new Date().toLocaleDateString('en-CA');
-
-    const completed = lastCompletedDate === today;
-    setHasCompletedJourneyToday(completed);
-    return completed;
-  };
-
-  useEffect(() => {
-    // Check completion status on mount
-    checkIfCompletedJourneyToday();
-
-    // Set up a timer to check every minute
+    // Set up a timer to check at midnight
     const timer = setInterval(() => {
       const now = new Date();
       if (now.getHours() === 0 && now.getMinutes() === 0) {
-        // It's midnight, reset the completion status
         checkIfCompletedJourneyToday();
       }
     }, 60000); // Check every minute
 
     // Clean up the timer on unmount
     return () => clearInterval(timer);
-  }, []);
+  }, [auth.currentUser]);
 
 
   useEffect(() => {
@@ -196,10 +236,15 @@ function App() {
       newTargetWord = endWord.toUpperCase();
     }
 
+    if (mode === 'classic') {
+      setTimeLeft(300);
+    } else if (mode === 'journey') {
+      setElapsedTime(0);
+    }
+
+    setIsTimerRunning(false);
     setCurrentWord(newStartWord);
     setTargetWord(newTargetWord);
-    setTimeLeft(60);
-    setIsTimerRunning(false);
     setGameOver(false);
     setPoints(0);
     setFade(false);
@@ -231,24 +276,22 @@ function App() {
   // Timer countdown; this is really fucked up isn't it
   useEffect(() => {
     let timerId;
-    if (isTimerRunning && timeLeft > 0 && !gameOver && !firstTimeModalOpen) {
-      timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-    } else if (timeLeft === 0 && !fade) {
+    if (isTimerRunning && !gameOver && !firstTimeModalOpen) {
       if (gameMode === 'classic') {
-      setFade(true);
-      saveScore(points); // Only save scores for classic mode
+        if (timeLeft > 0) {
+          timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+        } else if (!fade) {
+          setFade(true);
+          saveScore(points);
+          setTimeout(() => setGameOver(true), 2000);
+        }
+      } else if (gameMode === 'journey') {
+        timerId = setTimeout(() => setElapsedTime(prevTime => prevTime + 1), 1000);
       }
-
-      else if (gameMode === 'journey') {
-        markJourneyAsCompletedToday();
-      }
-
-      setTimeout(() => setGameOver(true), 2000);
     }
 
     return () => clearTimeout(timerId);
-  }, [timeLeft, gameOver, fade, isTimerRunning, firstTimeModalOpen, points, gameMode]);
-
+  }, [timeLeft, gameOver, fade, isTimerRunning, firstTimeModalOpen, points, gameMode, elapsedTime]);
 
   // Handles user input
   const handleChange = (event) => {
@@ -320,11 +363,12 @@ function App() {
       if (gameMode === 'journey' && inputWord.toUpperCase() === targetWord) {
         showMessage("You've reached the target word!", "success");
         markJourneyAsCompletedToday();
+        setIsTimerRunning(false); // Stop incrementing timer when target is found
         setTimeout(() => setGameOver(true), 2000);
       }
 
       // Only show score animation in classic mode
-      else { 
+      else {
         showMessage("Good job! The words are semantically related.", "success");
         setShowScore(true); // Show the score animation
         setTimeout(() => setShowScore(false), 1000); // Hide the score after 1 seconds
@@ -433,10 +477,13 @@ function App() {
 
       <div className={`game-info ${fade ? "fade-out" : ""}`}>
         {!(gameMode === 'journey' && hasCompletedJourneyToday) && (
-        <div>
-          Time left: {Math.floor(timeLeft / 60)}:
-          {(timeLeft % 60).toString().padStart(2, "0")}
-        </div>
+          <div>
+            {gameMode === 'classic' ? (
+              `Time left: ${Math.floor(timeLeft / 60)}:${(timeLeft % 60).toString().padStart(2, "0")}`
+            ) : (
+              `Time elapsed: ${Math.floor(elapsedTime / 60)}:${(elapsedTime % 60).toString().padStart(2, "0")}`
+            )}
+          </div>
         )}
         {gameMode === "classic" && <div>Points: {points}</div>}
       </div>

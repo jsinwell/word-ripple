@@ -72,14 +72,25 @@ const SignUpModal = ({ open, onClose, onLoginClick }) => {
             })
             // Displaying error messages (email in use, weak password, generic)
             .catch((error) => {
-                if (error.code === 'auth/email-already-in-use') {
-                    setEmailError('Email is already in use.');
-                } 
-                else if(error.code == 'auth/weak-password') {
-                    setPasswordError('Password should be at least 6 characters.')
-                }
-                else {
-                    console.error("Error signing up with email/password", error);
+                switch (error.code) {
+                    case 'auth/email-already-in-use':
+                        setEmailError('Email is already in use.');
+                        break;
+                    case 'auth/invalid-email':
+                        setEmailError('Invalid email address.');
+                        break;
+                    case 'auth/weak-password':
+                        setPasswordError('Password should be at least 6 characters.');
+                        break;
+                    case 'auth/operation-not-allowed':
+                        setEmailError('Email/password accounts are not enabled.');
+                        break;
+                    case 'auth/network-request-failed':
+                        setEmailError('Network error. Please try again later.');
+                        break;
+                    default:
+                        setEmailError('An error occurred. Please try again.');
+                        console.error("Error signing up with email/password", error);
                 }
             });
     };
