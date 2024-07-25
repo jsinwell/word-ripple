@@ -61,7 +61,7 @@ function App() {
 
   const [wordSet, setWordSet] = useState(new Set()); // Look up previously used words
 
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minute timer for `classic` mode
+  const [timeLeft, setTimeLeft] = useState(60); // 5 minute timer for `classic` mode
   const [isTimerRunning, setIsTimerRunning] = useState(false);
 
   const [elapsedTime, setElapsedTime] = useState(0); // timer for `journey` mode
@@ -237,7 +237,7 @@ function App() {
     }
 
     if (mode === 'classic') {
-      setTimeLeft(300);
+      setTimeLeft(60);
     } else if (mode === 'journey') {
       setElapsedTime(0);
     }
