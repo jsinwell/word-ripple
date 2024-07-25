@@ -11,6 +11,7 @@ import Leaderboard from "./Leaderboard";
 import LoginModal from "./LoginModal";
 import SignUpModal from "./SignupModal";
 import "../styles/App.css";
+import apiUrl from "../config";
 
 // Function to get a single daily word pair in journey mode for all users
 // Regardless of local time
@@ -94,7 +95,7 @@ function App() {
     // Post to database for authenticated users
     try {
       const idToken = await auth.currentUser.getIdToken();
-      await fetch('api/journey/complete', {
+      await fetch(`${apiUrl}/api/journey/complete`, {
         method: 'POST',
         headers: {
           'Authorization': idToken,
@@ -121,7 +122,7 @@ function App() {
     // Read from database for authenticated users
     try {
       const idToken = await auth.currentUser.getIdToken();
-      const response = await fetch('api/journey/check', {
+      const response = await fetch(`${apiUrl}/api/journey/check`, {
         headers: {
           'Authorization': idToken
         }
@@ -417,7 +418,7 @@ function App() {
 
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch('/api/scores', {
+      const response = await fetch(`${apiUrl}/api/scores`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
