@@ -94,7 +94,7 @@ function App() {
     // Post to database for authenticated users
     try {
       const idToken = await auth.currentUser.getIdToken();
-      await fetch('http://localhost:3000/api/journey/complete', {
+      await fetch('word-rippledb.c58ui0icepn4.us-west-1.rds.amazonaws.com/api/journey/complete', {
         method: 'POST',
         headers: {
           'Authorization': idToken,
@@ -121,7 +121,7 @@ function App() {
     // Read from database for authenticated users
     try {
       const idToken = await auth.currentUser.getIdToken();
-      const response = await fetch('http://localhost:3000/api/journey/check', {
+      const response = await fetch('word-rippledb.c58ui0icepn4.us-west-1.rds.amazonaws.com/api/journey/check', {
         headers: {
           'Authorization': idToken
         }
@@ -417,7 +417,7 @@ function App() {
 
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch('http://localhost:3000/api/scores', {
+      const response = await fetch('word-rippledb.c58ui0icepn4.us-west-1.rds.amazonaws.com/api/scores', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
