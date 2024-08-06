@@ -334,3 +334,112 @@ html {
   align-items: center;
   height: 70vh;
 }
+
+
+@media (max-width: 768px) {
+  body,
+  html {
+    padding-top: 20px;
+  }
+
+  .container {
+    padding: 0 10px;
+    padding-top: 150px;
+  }
+
+  .game-info {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin-top: 10px;
+  }
+
+  .game-info > div {
+    margin: 0 10px;
+  }
+
+  .game-container {
+    margin-top: 50px;
+  }
+
+  .word-display {
+    font-size: 24px;
+    text-align: center;
+  }
+
+  .main-app-content input,
+  .main-app-content button {
+    font-size: 16px;
+    padding: 8px;
+  }
+
+  .form-container form {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .form-container input {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .form-container button {
+    width: 100%;
+  }
+
+  .message-container {
+    height: auto;
+    min-height: 40px;
+  }
+
+  .message-success,
+  .message-error {
+    font-size: 14px;
+  }
+
+  .completed-journey-screen {
+    padding: 0 20px;
+    text-align: center;
+  }
+
+  .completed-journey-screen h2 {
+    font-size: 24px;
+  }
+
+  .completed-journey-screen p {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .word-display {
+    font-size: 20px;
+  }
+
+  .main-app-content input,
+  .main-app-content button {
+    font-size: 14px;
+    padding: 6px;
+  }
+
+  .game-over-content {
+    padding: 10px;
+  }
+
+  .game-over-message {
+    font-size: 20px;
+  }
+
+  .leaderboard-table {
+    font-size: 10px;
+  }
+
+  .total-points {
+    font-size: 14px;
+  }
+
+  .restart-button {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+}
