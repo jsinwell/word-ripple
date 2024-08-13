@@ -34,7 +34,6 @@ const getDailyWords = () => {
   return { startWord, endWord };
 };
 
-
 function App() {
   const [user, setUser] = useState(null);
   const [isEmailVerified, setIsEmailVerified] = useState(false);
