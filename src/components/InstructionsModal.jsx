@@ -21,7 +21,7 @@ const InstructionsModal = ({ open, onClose }) => {
                 </li>
                 <li>
                     Enter a new word that is semantically related to the current one.
-                    For example, from "Ocean" you could enter "Water" because they are
+                    For example, from "Ocean" you could enter "Sea" because they are
                     synonyms.
                 </li>
                 <li>
