@@ -55,28 +55,47 @@ html {
   font-weight: bold;
 }
 
-.main-app-content input,
-.main-app-content button {
-  font-size: 20px;
-  padding: 10px;
+.main-app-content input {
+  font-size: 18px;
+  padding: 12px 15px;
   margin: 5px;
-  background-color: #333;
+  background-color: #2a2a2a;
+  border: 2px solid #3a3a3a;
+  color: white;
+  border-radius: 5px;
+  outline: none;
+  transition: all 0.3s ease;
+  flex-grow: 1;
+}
+
+.main-app-content input:focus {
+  border-color: #5c6bc0;
+  box-shadow: 0 0 0 2px rgba(92, 107, 192, 0.2);
+}
+
+.main-app-content button {
+  font-size: 18px;
+  padding: 12px 20px;
+  margin: 5px;
+  background-color: #5c6bc0;
   border: none;
   color: white;
   border-radius: 5px;
-}
-
-.main-app-content button {
   cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.main-app-content input {
+  transition: all 0.3s ease;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .main-app-content button:hover {
-  background-color: #555;
+  background-color: #3f51b5;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.main-app-content button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 @keyframes messageFadeInOut {
@@ -382,7 +401,7 @@ html {
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    margin-top: 10px;
+    margin-top: 50px;
   }
 
   .game-info>div {
